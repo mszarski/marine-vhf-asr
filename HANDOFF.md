@@ -1,5 +1,9 @@
 # HANDOFF: marine VHF radio transcription (`marine_vhf_asr`)
 
+> **Note:** this handoff was written in the old `mszarski/claude_playground` monorepo, before the project moved here.
+> References to that repo, its `claude/...` branches, `trajectory_classifier`, the `bd` tracker, or "don't edit
+> CLAUDE.md" are out of date. Where this file and CLAUDE.md disagree, CLAUDE.md wins.
+
 Session handoff notes, written 2026-11-02 at the end of a long Claude Code
 session on branch `claude/modest-sagan-r554gj` of `mszarski/claude_playground`.
 The project is moving to its own GitHub repo. `marine_vhf_asr/README.md` has
