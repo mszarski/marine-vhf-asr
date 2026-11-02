@@ -9,26 +9,7 @@ fi
 
 echo "Setting up development environment..."
 
-# Install Python dependencies
-echo "Installing Python dependencies..."
-pip install -r "$CLAUDE_PROJECT_DIR/trajectory_classifier/requirements.txt"
-
-# Install pytest for testing
-pip install pytest
-
-# Install bd (beads issue tracker)
-echo "Setting up bd (beads issue tracker)..."
-if ! command -v bd &> /dev/null; then
-    if npm install -g @beads/bd --quiet 2>/dev/null && command -v bd &> /dev/null; then
-        echo "bd installed via npm"
-    elif command -v go &> /dev/null; then
-        echo "npm install failed, trying go install..."
-        go install github.com/steveyegge/beads/cmd/bd@latest
-        echo "export PATH=\"\$PATH:\$HOME/go/bin\"" >> "$CLAUDE_ENV_FILE"
-        echo "bd installed via go"
-    else
-        echo "Warning: Could not install bd - neither npm nor go available"
-    fi
-fi
+# GPU training deps (marine_vhf_asr/requirements-train.txt) are only needed in HF Jobs
+pip install -r "$CLAUDE_PROJECT_DIR/marine_vhf_asr/requirements.txt" pytest
 
 echo "Session startup complete"
