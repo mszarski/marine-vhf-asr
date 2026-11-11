@@ -40,7 +40,7 @@ Everything below is pushed. No HF Jobs are running and nothing is billing.
   `[?]` (suggest: exclude from WER, report the count). Showing drafts biases
   corrections slightly toward v6/Whisper wording; say so with the numbers.
 - Caveat: Puget Sound vessel names were in v6's AIS training text (region not
-  held out for names); New York names were. The real *audio* of both is unseen.
+  held out for names); New York names were not. The real *audio* of both is unseen.
 
 ---
 
