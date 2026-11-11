@@ -14,6 +14,36 @@ Everything below is pushed. No HF Jobs are running and nothing is billing.
 
 ---
 
+## Update 2026-11-11: real test set in progress
+
+- **Correction page is live** (private Claude artifact "Radio Log Check"):
+  https://claude.ai/artifact/VHw5EbvJ1eGcgDwQJSFZXA . 300 real clips, 150 each
+  from the held-out feeds New York (17329) and Puget Sound (26694), 30.6 min of
+  audio, interleaved so any prefix is balanced. Each shows the v6 draft (no
+  list) and the WhisperX words for the same time window.
+- The user is doing the listening. Marks are stored in the artifact's database,
+  collection `labels`, doc id = clip id:
+  `{status: "ok"|"no_speech"|"unclear", text, draft, feed, at}`. Vessel names
+  are wrapped in braces in `text` (`{dorothy j}`); `[?]` marks an unintelligible
+  word. Read them with the ArtifactData tool (`list`, collection `labels`).
+- Clips come from `jobs/real_clips_job.py` (energy gate in `segment.py`, not a
+  speech model, so the set isn't limited to what some model could hear):
+  40 NY files and 70 Puget Sound files spread over the feeds' date ranges, up
+  to 5 bursts of 2-20 s per file, 534 candidates. HF dataset
+  `mszarski/marine-vhf-real-test` (private): `clips/*.wav`, `candidates.jsonl`,
+  `picks.json`, `picked_300.json` (the 300 on the page, in page order).
+  Job `6af406dfab34849891addd6a`, ~$0.20.
+- Page source and data builder: `marine_vhf_asr/label_page/`.
+- **Next**: once enough clips are marked, export labels, strip braces/`[?]`
+  into `text` + `slots`, write a manifest for `sources.py`, and score v6 (and
+  base Voxtral, Whisper, Nemotron) on it. Decide how to score clips containing
+  `[?]` (suggest: exclude from WER, report the count). Showing drafts biases
+  corrections slightly toward v6/Whisper wording; say so with the numbers.
+- Caveat: Puget Sound vessel names were in v6's AIS training text (region not
+  held out for names); New York names were. The real *audio* of both is unseen.
+
+---
+
 ## 1. Goal
 
 Build a marine VHF radio speech-to-text model: port control / VTS, pilots,

@@ -1,0 +1,276 @@
+<title>Radio Log Check</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one clip at a time in a single narrow column, like a radio log sheet: player, transcript box, verdict buttons; the full list sits below. */
+:root {
+  --bg: #f3f5f6; --panel: #ffffff; --ink: #14232e; --muted: #5b6b76; --line: #d3dbe0;
+  --accent: #0b6b7a; --accent-ink: #ffffff; --good: #1f7a4d; --warn: #a15c00; --bad: #a3392f; --mark: #fff0c2;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0e171d; --panel: #16232b; --ink: #e4ecf0; --muted: #93a4ae; --line: #2a3b45;
+  --accent: #4fc0cf; --accent-ink: #06252b; --good: #5cc692; --warn: #e0a34a; --bad: #ee8076; --mark: #4a3d12; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0e171d; --panel: #16232b; --ink: #e4ecf0; --muted: #93a4ae; --line: #2a3b45;
+  --accent: #4fc0cf; --accent-ink: #06252b; --good: #5cc692; --warn: #e0a34a; --bad: #ee8076; --mark: #4a3d12; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--sans); padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+h1 { font-size: 22px; font-weight: 600; margin: 0; text-wrap: balance; }
+h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0; }
+p { margin: 0; }
+.head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
+.count { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--muted); font-size: 13px; }
+.bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+.bar > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+.note { font-size: 13px; color: var(--warn); }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; font-family: var(--mono); font-size: 12.5px; color: var(--muted); }
+.chip { font-family: var(--sans); font-size: 12px; font-weight: 500; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.chip.ok { color: var(--good); border-color: var(--good); } .chip.none { color: var(--muted); } .chip.unclear { color: var(--warn); border-color: var(--warn); }
+.player { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.track { flex: 1 1 160px; min-width: 0; height: 8px; background: var(--line); border-radius: 4px; overflow: hidden; }
+.track > i { display: block; height: 100%; width: 0; background: var(--accent); }
+button { font: 500 14px var(--sans); color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, textarea:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+button.on { border-color: var(--accent); color: var(--accent); }
+button:disabled { opacity: .5; cursor: default; }
+button.small { padding: 4px 10px; font-size: 13px; }
+textarea { width: 100%; box-sizing: border-box; min-height: 96px; resize: vertical; font: 16px/1.5 var(--mono); color: var(--ink);
+  background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.ref { font-size: 13px; color: var(--muted); display: flex; flex-direction: column; gap: 6px; }
+.ref div { display: flex; gap: 10px; align-items: baseline; }
+.ref b { flex: 0 0 64px; font-weight: 500; }
+.ref span { flex: 1; min-width: 0; font-family: var(--mono); overflow-wrap: anywhere; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.row .push { margin-left: auto; }
+.status { font-size: 13px; color: var(--muted); min-height: 1.5em; }
+.status.err { color: var(--bad); }
+details { font-size: 14px; color: var(--muted); } details summary { cursor: pointer; color: var(--ink); font-weight: 500; }
+details ul { margin: 8px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+kbd, code { font-family: var(--mono); font-size: 12.5px; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; }
+mark { background: var(--mark); color: inherit; border-radius: 3px; padding: 0 2px; }
+.list { display: flex; flex-direction: column; }
+.item { display: flex; gap: 10px; align-items: baseline; width: 100%; text-align: left; border: 0; border-top: 1px solid var(--line); border-radius: 0; padding: 8px 4px; background: none; }
+.item.cur { background: var(--bg); }
+.item .n { flex: 0 0 34px; font-family: var(--mono); font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.item .t { flex: 1; min-width: 0; font-family: var(--mono); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.item .t.todo { color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .bar > i { transition: none; } }
+</style>
+
+<div class="wrap">
+  <div class="head">
+    <h1>Radio Log Check</h1>
+    <span class="count" id="count">loading clips</span>
+  </div>
+  <div class="bar" aria-hidden="true"><i id="bar"></i></div>
+  <p class="note" id="note" hidden></p>
+
+  <details id="help">
+    <summary>How to mark a clip</summary>
+    <ul>
+      <li>Listen, then fix the draft so it says exactly what was said. Capitals and punctuation don't matter.</li>
+      <li>Write numbers the way they were spoken: <code>one four</code> if they said "one four", <code>fourteen</code> if they said "fourteen".</li>
+      <li>Put <code>[?]</code> for a word you can't make out. Don't guess.</li>
+      <li>Select a vessel name and press <b>Vessel name</b> to wrap it in braces, like <code>{dorothy j}</code>. This is how name accuracy gets scored.</li>
+      <li>If two people talk in one clip, just write it all in order.</li>
+      <li><b>No speech</b> for static, tones or silence. <b>Can't tell</b> when someone is talking but you can't write most of it.</li>
+      <li>Keys: <kbd>Ctrl</kbd>+<kbd>Enter</kbd> save and next, <kbd>Ctrl</kbd>+<kbd>Space</kbd> replay.</li>
+    </ul>
+  </details>
+
+  <div class="card" id="card" hidden>
+    <div class="meta"><span id="pos"></span><span id="feed"></span><span id="when"></span><span id="len"></span><span class="chip" id="state"></span></div>
+    <div class="player">
+      <button class="primary" id="play" type="button">Play</button>
+      <div class="track" aria-hidden="true"><i id="prog"></i></div>
+      <button class="small" id="slow" type="button" aria-pressed="false">Slow</button>
+      <button class="small" id="loop" type="button" aria-pressed="false">Loop</button>
+    </div>
+    <label for="text"><h2>What was said</h2></label>
+    <textarea id="text" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+    <div class="ref">
+      <div><b>Our model</b><span id="d1"></span><button class="small" id="use1" type="button">Use</button></div>
+      <div><b>Whisper</b><span id="d2"></span><button class="small" id="use2" type="button">Use</button></div>
+    </div>
+    <div class="row">
+      <button class="primary" id="save" type="button">Save and next</button>
+      <button id="vessel" type="button">Vessel name</button>
+      <button id="nospeech" type="button">No speech</button>
+      <button id="unclear" type="button">Can't tell</button>
+      <button class="push" id="prev" type="button">Back</button>
+      <button id="skip" type="button">Skip</button>
+    </div>
+    <p class="status" id="status" role="status"></p>
+  </div>
+
+  <div class="row" id="listhead" hidden>
+    <h2>All clips</h2>
+    <button class="small push" id="todo" type="button">Go to first unmarked</button>
+  </div>
+  <div class="list" id="list"></div>
+</div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var clips = [], labels = {}, cur = 0, db = null, canSave = false;
+  var chunks = {}, audio = new Audio(), slow = false, loaded = "";
+  var FEEDS = { "17329": "New York", "26694": "Puget Sound" };
+
+  function esc(s) { return String(s).replace(/[&<>]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]; }); }
+  function doneCount() { return clips.filter(function (c) { return labels[c.id]; }).length; }
+  function when(c) {
+    var m = /-(\d{4})(\d\d)(\d\d)-(\d\d)(\d\d)_/.exec(c.id);
+    return m ? m[1] + "-" + m[2] + "-" + m[3] + " " + m[4] + ":" + m[5] + "Z +" + Math.round(c.start) + "s" : "";
+  }
+  function summary(c) {
+    var l = labels[c.id];
+    if (!l) return c.draft || "";
+    return l.status === "no_speech" ? "(no speech)" : l.status === "unclear" ? "(can't tell) " + (l.text || "") : l.text;
+  }
+
+  function renderHead() {
+    var d = doneCount();
+    $("count").textContent = clips.length ? d + " of " + clips.length + " marked" : "no clips";
+    $("bar").style.width = clips.length ? (100 * d / clips.length) + "%" : "0";
+  }
+  function renderList() {
+    $("list").innerHTML = clips.map(function (c, i) {
+      var l = labels[c.id], cls = l ? (l.status === "ok" ? "ok" : l.status === "no_speech" ? "none" : "unclear") : "";
+      return '<button type="button" class="item' + (i === cur ? " cur" : "") + '" data-i="' + i + '"><span class="n">' + (i + 1) +
+        '</span><span class="t' + (l ? "" : " todo") + '">' + esc(summary(c) || "(empty draft)") + "</span>" +
+        (l ? '<span class="chip ' + cls + '">' + (l.status === "ok" ? "done" : l.status === "no_speech" ? "no speech" : "can't tell") + "</span>" : "") + "</button>";
+    }).join("");
+  }
+  function show(i, keepText) {
+    cur = Math.max(0, Math.min(clips.length - 1, i));
+    var c = clips[cur], l = labels[c.id];
+    $("pos").textContent = "#" + (cur + 1);
+    $("feed").textContent = FEEDS[c.feed] || c.feed;
+    $("when").textContent = when(c);
+    $("len").textContent = (c.end - c.start).toFixed(1) + " s";
+    $("state").textContent = l ? (l.status === "ok" ? "done" : l.status === "no_speech" ? "no speech" : "can't tell") : "not marked";
+    $("state").className = "chip " + (l ? (l.status === "ok" ? "ok" : l.status === "no_speech" ? "none" : "unclear") : "");
+    if (!keepText) $("text").value = l ? (l.text || "") : (c.draft || "");
+    $("d1").textContent = c.draft || "(nothing)";
+    $("d2").textContent = c.whisper || "(nothing)";
+    $("status").textContent = ""; $("status").className = "status";
+    try { localStorage.setItem("rlc-cur", c.id); } catch (e) {}
+    renderList();
+    loadAudio(c, false);
+  }
+
+  function loadAudio(c, thenPlay) {
+    audio.pause(); $("play").textContent = "Play"; $("prog").style.width = "0";
+    var k = c.chunk;
+    var ready = function () {
+      if (clips[cur].id !== c.id) return;
+      audio.src = "data:audio/mpeg;base64," + chunks[k][c.id]; loaded = c.id;
+      audio.playbackRate = slow ? 0.75 : 1;
+      if (thenPlay) play();
+    };
+    if (chunks[k] && chunks[k].then) { chunks[k].then(ready); return; }
+    if (chunks[k]) { ready(); return; }
+    chunks[k] = fetch("audio_" + k + ".json").then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function (j) { chunks[k] = j; return j; });
+    chunks[k].then(ready, function () { chunks[k] = null; say("Couldn't load the audio for this clip. Try again in a moment.", true); });
+  }
+  function play() {
+    if (loaded !== clips[cur].id) { loadAudio(clips[cur], true); return; }
+    audio.currentTime = 0; audio.playbackRate = slow ? 0.75 : 1;
+    audio.play().then(function () { $("play").textContent = "Replay"; }, function () {});
+  }
+  audio.addEventListener("timeupdate", function () { if (audio.duration) $("prog").style.width = (100 * audio.currentTime / audio.duration) + "%"; });
+  audio.addEventListener("ended", function () { $("prog").style.width = "100%"; });
+
+  function say(msg, err) { $("status").textContent = msg; $("status").className = "status" + (err ? " err" : ""); }
+  function nextTodo(from) {
+    for (var n = 1; n <= clips.length; n++) { var i = (from + n) % clips.length; if (!labels[clips[i].id]) return i; }
+    return -1;
+  }
+  var saving = false;
+  function save(status) {
+    if (saving) return;
+    var c = clips[cur], text = $("text").value.replace(/\s+/g, " ").trim();
+    if (status === "ok" && !text) { say("The box is empty. Type what was said, or press No speech.", true); return; }
+    if (!db || !canSave) { say("Saving isn't available in this view, so nothing was stored. Open the page signed in as its owner.", true); return; }
+    var body = { status: status, text: status === "no_speech" ? "" : text, draft: c.draft || "", feed: c.feed, at: new Date().toISOString() };
+    saving = true; say("Saving");
+    db.doc("labels/" + c.id).set(body).then(function () {
+      saving = false; labels[c.id] = body; renderHead();
+      var n = nextTodo(cur);
+      if (n < 0) { show(cur); say("Saved. Every clip is marked."); }
+      else { show(n); loadAudio(clips[n], true); }
+    }, function (e) {
+      saving = false;
+      if (e && e.code === "invalid_argument") canSave = false;
+      say(e && e.code === "quota_exceeded" ? "Storage is full, so this wasn't saved." : "Couldn't save this one. Check your connection and press Save again.", true);
+    });
+  }
+  function wrapVessel() {
+    var t = $("text"), a = t.selectionStart, b = t.selectionEnd;
+    if (a === b) { say("Select the vessel's name in the box first.", true); return; }
+    var sel = t.value.slice(a, b), lead = sel.match(/^\s*/)[0], trail = sel.match(/\s*$/)[0];
+    t.value = t.value.slice(0, a) + lead + "{" + sel.trim().replace(/[{}]/g, "") + "}" + trail + t.value.slice(b);
+    t.focus(); say("");
+  }
+
+  $("play").onclick = play;
+  $("slow").onclick = function () { slow = !slow; this.classList.toggle("on", slow); this.setAttribute("aria-pressed", slow); audio.playbackRate = slow ? 0.75 : 1; };
+  $("loop").onclick = function () { audio.loop = !audio.loop; this.classList.toggle("on", audio.loop); this.setAttribute("aria-pressed", audio.loop); };
+  $("use1").onclick = function () { $("text").value = clips[cur].draft || ""; $("text").focus(); };
+  $("use2").onclick = function () { $("text").value = clips[cur].whisper || ""; $("text").focus(); };
+  $("save").onclick = function () { save("ok"); };
+  $("nospeech").onclick = function () { save("no_speech"); };
+  $("unclear").onclick = function () { save("unclear"); };
+  $("vessel").onclick = wrapVessel;
+  $("prev").onclick = function () { show(cur - 1); };
+  $("skip").onclick = function () { show(cur + 1 < clips.length ? cur + 1 : 0); };
+  $("todo").onclick = function () { var n = labels[clips[0].id] ? nextTodo(0) : 0; if (n >= 0) { show(n); $("card").scrollIntoView({ block: "start" }); } };
+  $("list").onclick = function (e) { var b = e.target.closest(".item"); if (b) { show(+b.dataset.i); $("card").scrollIntoView({ block: "start" }); } };
+  document.addEventListener("keydown", function (e) {
+    if (!(e.ctrlKey || e.metaKey)) return;
+    if (e.key === "Enter") { e.preventDefault(); save("ok"); }
+    else if (e.code === "Space") { e.preventDefault(); play(); }
+  });
+
+  function start() {
+    fetch("clips.json").then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (list) {
+      clips = list; if (!clips.length) { renderHead(); return; }
+      $("card").hidden = false; $("listhead").hidden = false;
+      var saved = null; try { saved = localStorage.getItem("rlc-cur"); } catch (e) {}
+      var at = clips.findIndex(function (c) { return c.id === saved; });
+      renderHead(); show(at < 0 ? 0 : at);
+      try { if (!localStorage.getItem("rlc-seen")) { $("help").open = true; localStorage.setItem("rlc-seen", "1"); } } catch (e) { $("help").open = true; }
+      connect();
+    }, function () { $("count").textContent = "clips didn't load"; $("note").hidden = false; $("note").textContent = "The clip list couldn't be loaded. Reload the page to try again."; });
+  }
+  function connect() {
+    var note = $("note"), timer = setTimeout(function () { note.hidden = false; note.textContent = "Saved marks haven't loaded yet. What you see may be out of date."; }, 10000);
+    var done = function () { clearTimeout(timer); note.hidden = true; };
+    (window.claude && window.claude.use ? window.claude.use("db") : Promise.resolve(null)).then(function (d) {
+      if (!d) { clearTimeout(timer); note.hidden = false; note.textContent = "Saving isn't available in this view. You can listen, but marks won't be stored."; return; }
+      db = d; canSave = true;
+      var first = true;
+      db.collection("labels").limit(1000).onSnapshot(function (snap) {
+        if (!snap.metadata.fromCache) done();
+        var next = {}; snap.docs.forEach(function (doc) { next[doc.id] = doc.data(); });
+        labels = next; renderHead();
+        if (first) {
+          first = false;
+          var typed = $("text").value !== (clips[cur].draft || "");
+          var saved = null; try { saved = localStorage.getItem("rlc-cur"); } catch (e) {}
+          if (!saved && labels[clips[cur].id]) { var n = nextTodo(cur); show(n < 0 ? cur : n); } else show(cur, typed);
+        } else renderList();
+      }, function () { clearTimeout(timer); canSave = false; note.hidden = false; note.textContent = "Lost the connection to saved marks. Reload the page before marking more."; });
+    });
+  }
+  start();
+})();
+</script>
